@@ -19,7 +19,7 @@ usuarios = [
     {"id": 1, "usuario": "Camila", "correo": "camilasolvil@gmail.com", "password": "ABC2024", "activa": True},
     {"id": 2, "usuario": "Matias",  "correo": "matias090@gmail.com", "password": "Pass09", "activa": True},
     {"id": 3, "usuario": "Valeria", "correo": "valelemus@gmail.com", "password": "AjIplj0", "activa": True},
-    {"id": 4, "usuario": "Milena",  "correo": "milevilla.com", "password": "Abyss98", "activa": True},
+    {"id": 4, "usuario": "Milena",  "correo": "milevilla@gmail.com", "password": "Abyss98", "activa": True},
     {"id": 5, "usuario": "Angelica",  "correo": "angiefelton@gmail.com", "password": "bohemian", "activa": True}
 ]
 @app.post("/usuarios", response_model=SalidaUsuario, status_code=201)
