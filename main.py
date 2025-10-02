@@ -1,72 +1,140 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-app = FastAPI(title="CRUD")
-class Login(BaseModel):
-    correo: str
+
+app = FastAPI(title="API de Usuarios CRUD")
+
+# Modelos de datos
+class UserCreate(BaseModel):
+    username: str
     password: str
-class UsuarioNuevo(BaseModel):
-    usuario: str
-    correo: str
-    password: str
-    activa: Optional[bool] = True
-class SalidaUsuario(BaseModel):
+    email: Optional[str] = None
+    is_active: bool = True
+
+class UserResponse(BaseModel):
     id: int
-    usuario: str
-    correo: str
-    activa: bool
-usuarios = [
-    {"id": 1, "usuario": "Camila", "correo": "camilasolvil@gmail.com", "password": "ABC2024", "activa": True},
-    {"id": 2, "usuario": "Matias",  "correo": "matias090@gmail.com", "password": "Pass09", "activa": True},
-    {"id": 3, "usuario": "Valeria", "correo": "valelemus@gmail.com", "password": "AjIplj0", "activa": True},
-    {"id": 4, "usuario": "Milena",  "correo": "milevilla@gmail.com", "password": "Abyss98", "activa": True},
-    {"id": 5, "usuario": "Angelica",  "correo": "angiefelton@gmail.com", "password": "bohemian", "activa": True}
-]
-@app.post("/usuarios", response_model=SalidaUsuario, status_code=201)
-def crear_usuario(u: UsuarioNuevo):
-    if any(x["correo"] == u.correo for x in usuarios):
-        raise HTTPException(status_code=400, detail="correo ya existente")
-    nuevo_id = max((x["id"] for x in usuarios), default=0) + 1
-    user = {
-        "id": nuevo_id,
-        "usuario": u.usuario,
-        "correo": u.correo,
-        "password": u.password,
-        "activa": u.activa
+    username: str
+    email: Optional[str] = None
+    is_active: bool
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# Base de datos en memoria
+users_db = []
+next_id = 1
+
+# CREAR usuario
+@app.post("/users", response_model=UserResponse)
+def create_user(user: UserCreate):
+    global next_id
+    
+    # Verificar si el usuario ya existe
+    for u in users_db:
+        if u["username"] == user.username:
+            raise HTTPException(400, "Usuario ya existe")
+    
+    nuevo_usuario = {
+        "id": next_id,
+        "username": user.username,
+        "email": user.email,
+        "password": user.password,
+        "is_active": user.is_active
     }
-    usuarios.append(user)
-    return {"id": user["id"], "usuario": user["usuario"], "correo": user["correo"], "activa": user["activa"]}
-@app.get("/usuarios", response_model=List[SalidaUsuario])
-def listar_usuarios():
-    return [{"id": x["id"], "usuario": x["usuario"], "correo": x["correo"], "activa": x["activa"]} for x in usuarios]
-@app.get("/usuarios/{user_id}", response_model=SalidaUsuario)
-def obtener_usuario(user_id: int):
-    u = next((x for x in usuarios if x["id"] == user_id), None)
-    if not u:
-        raise HTTPException(status_code=404, detail="usuario no encontrado")
-    return {"id": u["id"], "usuario": u["usuario"], "correo": u["correo"], "activa": u["activa"]}
-@app.put("/usuarios/{user_id}", response_model=SalidaUsuario)
-def actualizar_usuario(user_id: int, data: UsuarioNuevo):
-    u = next((x for x in usuarios if x["id"] == user_id), None)
-    if not u:
-        raise HTTPException(status_code=404, detail="usuario no encontrado")
-    if any(x["correo"] == data.correo and x["id"] != user_id for x in usuarios):
-        raise HTTPException(status_code=400, detail="correo ya en uso por otro usuario")
-    u["usuario"] = data.usuario
-    u["correo"] = data.correo
-    u["password"] = data.password
-    u["activa"] = data.activa if data.activa is not None else u["activa"]
-    return {"id": u["id"], "usuario": u["usuario"], "correo": u["correo"], "activa": u["activa"]}
-@app.delete("/usuarios/{user_id}")
-def eliminar_usuario(user_id: int):
-    global usuarios
-    if not any(x["id"] == user_id for x in usuarios):
-        raise HTTPException(status_code=404, detail="usuario no encontrado")
-    usuarios = [x for x in usuarios if x["id"] != user_id]
-    return {"message": "Usuario eliminado"}
+    
+    users_db.append(nuevo_usuario)
+    next_id += 1
+    
+    return {
+        "id": nuevo_usuario["id"],
+        "username": nuevo_usuario["username"],
+        "email": nuevo_usuario["email"],
+        "is_active": nuevo_usuario["is_active"]
+    }
+
+# LISTAR todos los usuarios
+@app.get("/users", response_model=List[UserResponse])
+def get_all_users():
+    respuesta = []
+    for user in users_db:
+        respuesta.append({
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "is_active": user["is_active"]
+        })
+    return respuesta
+
+# OBTENER un usuario por ID
+@app.get("/users/{user_id}", response_model=UserResponse)
+def get_user(user_id: int):
+    for user in users_db:
+        if user["id"] == user_id:
+            return {
+                "id": user["id"],
+                "username": user["username"],
+                "email": user["email"],
+                "is_active": user["is_active"]
+            }
+    raise HTTPException(404, "Usuario no encontrado")
+
+# ACTUALIZAR usuario (sin cambiar password)
+@app.put("/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, user_data: UserCreate):
+    for user in users_db:
+        if user["id"] == user_id:
+            # Verificar que el nuevo username no exista
+            for u in users_db:
+                if u["username"] == user_data.username and u["id"] != user_id:
+                    raise HTTPException(400, "Username ya existe")
+            
+            user["username"] = user_data.username
+            user["email"] = user_data.email
+            user["is_active"] = user_data.is_active
+            
+            return {
+                "id": user["id"],
+                "username": user["username"],
+                "email": user["email"],
+                "is_active": user["is_active"]
+            }
+    
+    raise HTTPException(404, "Usuario no encontrado")
+
+# ELIMINAR usuario
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int):
+    global users_db
+    for i, user in enumerate(users_db):
+        if user["id"] == user_id:
+            users_db.pop(i)
+            return {"message": "Usuario eliminado"}
+    raise HTTPException(404, "Usuario no encontrado")
+
+# LOGIN
 @app.post("/login")
-def login(payload: Login):
-    user = next((x for x in usuarios if x["correo"] == payload.correo and x["password"] == payload.password), None)
-    if user:
-        return {"message": "Login exitoso"}
-    return {"message": "Credenciales inválidas"}
+def login(login_data: LoginRequest):
+    for user in users_db:
+        if user["username"] == login_data.username and user["password"] == login_data.password:
+            return {"message": "Login exitoso"}
+    return {"message": "Login fallido"}
+
+# Crear usuarios de ejemplo al iniciar
+@app.on_event("startup")
+def crear_usuarios_ejemplo():
+    usuarios_ejemplo = [
+        {"username": "Camila", "password": "A1", "email": "camila@ejemplo.com"},
+        {"username": "Matias", "password": "B2", "email": "matias@ejemplo.com"},
+        {"username": "Valeria", "password": "C3", "email": "valeria@ejemplo.com"},
+        {"username": "Milena", "password": "a1", "email": "milena@ejemplo.com"},
+        {"username": "Angelica", "password": "b2", "email": "angelica@ejemplo.com"}
+    ]
+    
+    for usuario in usuarios_ejemplo:
+        create_user(UserCreate(**usuario))
+
+# Ruta de prueba
+@app.get("/")
+def home():
+    return {"message": "API CRUD de Usuarios funcionando"}
