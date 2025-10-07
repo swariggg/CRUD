@@ -1,7 +1,4 @@
 <img width="914" height="467" alt="image" src="https://github.com/user-attachments/assets/4de0dd6c-761e-4c35-bcd8-e2d34b3b441f" />
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-echo "*" > .venv/.gitignore
-pip install "fastapi[standard]"
-pip install -r requirements.txt
-fastapi dev main.py
+py3 -m venv venv
+source venv/bin/activate
+pip install fastapi uvicorn requests
